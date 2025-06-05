@@ -1,87 +1,75 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from statsmodels.graphics.tsaplots import month_plot
-from PythonTsa.plot_acf_pacf import acf_pacf_fig
+from statsmodels.graphics.tsaplots import month_plot, plot_acf, plot_pacf
 
-
-# In[2]:
-
+# Streamlit app setup
+import streamlit as st
+st.set_page_config(layout="wide")
 
 # Membaca file data
-x = pd.read_csv('data/femaleaged20-19481981.csv', header=None)
-dates = pd.date_range(start='1948-01', periods=len(x), freq='ME')
-x = pd.Series(x[0].values, index=dates)
+@st.cache_data
+def load_data():
+    x = pd.read_csv('data/femaleaged20-19481981.csv', header=None)
+    dates = pd.date_range(start='1948-01', periods=len(x), freq='ME')
+    return pd.Series(x[0].values, index=dates)
 
-
-# In[3]:
-
+x = load_data()
 
 # Plot data keseluruhan
-x.plot(color='b', linewidth=1.5)
-plt.title("Tren Data Tenaga Kerja Wanita (1948-1981)")
-plt.xlabel("Tahun")
-plt.ylabel("Jumlah Pekerja (dalam ribuan)")
-plt.grid(True, linestyle="--", alpha=0.7)
-plt.show()
-
-
-# In[4]:
-
+st.subheader("Tren Data Tenaga Kerja Wanita (1948-1981)")
+fig, ax = plt.subplots(figsize=(10, 4))
+x.plot(color='b', linewidth=1.5, ax=ax)
+ax.set_xlabel("Tahun")
+ax.set_ylabel("Jumlah Pekerja (dalam ribuan)")
+ax.grid(True, linestyle="--", alpha=0.7)
+st.pyplot(fig)
 
 # Plot subset data
-x['1963-01':'1965-12'].plot(marker='o', linestyle='-', color='k')
-plt.title("Subset Data (Jan 1963 - Des 1965)")
-plt.ylabel("Jumlah Pekerja")
-plt.grid(True, linestyle="--", alpha=0.7)
-plt.show()
-
-
-# In[5]:
-
+st.subheader("Subset Data (Jan 1963 - Des 1965)")
+fig, ax = plt.subplots(figsize=(10, 4))
+x['1963-01':'1965-12'].plot(marker='o', linestyle='-', color='k', ax=ax)
+ax.set_ylabel("Jumlah Pekerja")
+ax.grid(True, linestyle="--", alpha=0.7)
+st.pyplot(fig)
 
 # Plot musiman
-month_plot(x)
-plt.title("Plot Musiman Data Tenaga Kerja Wanita (1948-1981)")
+st.subheader("Plot Musiman Data Tenaga Kerja Wanita (1948-1981)")
+fig = month_plot(x)
 plt.grid(True, linestyle="--", alpha=0.7)
-plt.show()
-
-
-# In[6]:
-
+st.pyplot(fig)
 
 # Diferensiasi musiman dan biasa
+st.subheader("Diferensiasi Musiman dan Biasa")
 dDx = sm.tsa.statespace.tools.diff(x, k_diff=1, k_seasonal_diff=1, seasonal_periods=12)
-print(dDx.head())
+st.write("5 data pertama setelah diferensiasi:", dDx.head())
 
-dDx.plot(color='k', linewidth=1.2)
-plt.title("Diferensiasi Musiman dan Biasa")
-plt.xlabel("Tahun")
-plt.ylabel("Diferensiasi Data")
-plt.grid(True, linestyle="--", alpha=0.7)
-plt.show()
-
-
-# In[7]:
-
+fig, ax = plt.subplots(figsize=(10, 4))
+dDx.plot(color='k', linewidth=1.2, ax=ax)
+ax.set_xlabel("Tahun")
+ax.set_ylabel("Diferensiasi Data")
+ax.grid(True, linestyle="--", alpha=0.7)
+st.pyplot(fig)
 
 # Plot ACF dan PACF
-fig = acf_pacf_fig(dDx.dropna(), both=True, lag=36)
-plt.suptitle("ACF dan PACF runtun diferensiasi musiman", y=0.95)
+st.subheader("ACF dan PACF runtun diferensiasi musiman")
+dDx_clean = dDx.dropna()
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+plot_acf(dDx_clean, lags=36, ax=ax1)
+plot_pacf(dDx_clean, lags=36, ax=ax2)
 plt.tight_layout()
-plt.show()
-
-
-# In[8]:
-
+st.pyplot(fig)
 
 # Uji KPSS
-result = sm.tsa.kpss(dDx.dropna(), regression='c', nlags="auto")
-print(result)
-
+st.subheader("Hasil Uji KPSS")
+result = sm.tsa.kpss(dDx_clean, regression='c', nlags="auto")
+st.write(f"""
+- Statistik KPSS: {result[0]:.4f}
+- p-value: {result[1]:.4f}
+- Lags used: {result[2]}
+- Critical values: {result[3]}
+""")
