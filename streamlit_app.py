@@ -15,7 +15,7 @@ from PythonTsa.plot_acf_pacf import acf_pacf_fig
 
 
 # Membaca file data
-x = pd.read_csv('femaleaged20-19481981.csv', header=None)
+x = pd.read_csv('data/femaleaged20-19481981.csv', header=None)
 dates = pd.date_range(start='1948-01', periods=len(x), freq='ME')
 x = pd.Series(x[0].values, index=dates)
 
